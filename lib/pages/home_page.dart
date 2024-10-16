@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:test/components/task.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:test/data/database.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,6 +12,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _taskName = TextEditingController();
+  final _myBox = Hive.box('taskbox');
+
+  TaskDatabase db = TaskDatabase();
+  
+  @override
+  void initState() {
+    if (_myBox.get("tasksbox") == null) {
+      db.createInitData();
+    }
+    else {
+      db.loadData();
+    }
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -17,20 +33,20 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  List taskList = [];
-
   void checkBoxChanged(int index) {
       setState(() {
-        taskList[index][1] = !taskList[index][1];
+        db.taskList[index][1] = !db.taskList[index][1];
       });
+    db.updateData();
   }
 
   void addTask() {
     setState(() {
-      taskList.add([_taskName.text, false]);
+      db.taskList.add([_taskName.text, false]);
       Navigator.pop(context);
       _taskName.clear();
     });
+    db.updateData();
   }
 
   @override
@@ -50,18 +66,19 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       body: ListView.builder(
-        itemCount: taskList.length,
+        itemCount: db.taskList.length,
         itemBuilder: (BuildContext context, index) {
         return Dismissible(
           onDismissed: (direction) {
             setState(() {
-              taskList.removeAt(index);
+              db.taskList.removeAt(index);
+              db.updateData();
             });
           },
-          key: Key(taskList[index][0]),
+          key: Key(db.taskList[index][0]),
           child: Task(
-              taskName: taskList[index][0],
-              checkedOrNot: taskList[index][1],
+              taskName: db.taskList[index][0],
+              checkedOrNot: db.taskList[index][1],
               onChanged: (value) => checkBoxChanged(index)
             )
           );
@@ -132,7 +149,7 @@ class _HomePageState extends State<HomePage> {
           );
         },
         backgroundColor: Colors.blue,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white,),
       ),
     );
   }
